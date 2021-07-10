@@ -58,6 +58,7 @@ _Copyright © Daniel Oaks <daniel@danieloaks.net>, Shivaram Lingamneni <slingamn
 - [Commands](#commands)
 - [Working with other software](#working-with-other-software)
     - [Kiwi IRC](#kiwi-irc)
+    - [gamja](#gamja)
     - [Migrating from Anope or Atheme](#migrating-from-anope-or-atheme)
     - [HOPM](#hopm)
     - [Tor](#tor)
@@ -964,6 +965,52 @@ then add the following `startupOptions` to Kiwi's `static/config.json` file (see
         "channel": "#chat",
         "nick": "kiwi-n?"
     },
+```
+
+## gamja
+
+[gamja](https://sr.ht/~emersion/gamja/) is another web-based IRC client. For a demonstration of its features, you can try the gamja client on the official Ergo IRC network: [ergo.chat/gamja/](https://ergo.chat/gamja/).
+
+Note that with Ergo you do not need the external WebIRC gateway.
+
+If you do not already have a WebSocket listener (i.e. after following the Kiwi instructions above) configure one in your ergo config (ircd.yaml):
+
+```yaml
+        "127.0.0.1:8068":
+            websocket: true
+```
+
+Add the following block to your nginx config / your nginx server block, and, if necessary, adjust the values to match your environment:
+
+```
+        location /gamja {
+                root    /srv/www/gamja;
+                index   index.html;
+        }
+
+        location /socket {
+                proxy_pass http://127.0.0.1:8068;
+                proxy_read_timeout 600s;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "Upgrade";
+                proxy_set_header X-Forwarded-For $remote_addr;
+                proxy_set_header X-Forwarded-Proto $scheme;
+        }	
+```
+
+The location you serve your gamja static files at can be adjusted at will, however the reverse proxy to the WebIRC listener needs to be served at `/socket` by default. To override it, specify a different path in the `config.json` (see below), or provide users with a URL the websocket location is specified in (?server=/socket). This might be handy if you followed the Kiwi instructions above, and already have a `/webirc` location.
+
+By default the fields upon browsing to your gamja instance are empty. You can set default values by creating a `config.json` file in your gamja root:
+
+```
+	{
+        	"server": {
+                	"url": "wss://example.com/socket",
+                	"autojoin": "#channel1,#channel2",
+                	"auth": "optional",
+        	}
+	}
 ```
 
 ## Migrating from Anope or Atheme
